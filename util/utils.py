@@ -1,10 +1,16 @@
-'''
-Utililty methods
+#
+#
+# Copyright (C) 2020 Niko Popitsch.  All rights reserved.
+#
+# This file is part of Nanopanel2
+# 
+# See the file LICENSE for redistribution information.
+#
+# @author: niko.popitsch
 
-
-@author: niko popitsch
 '''
-# LICENSE
+    Nanopanel2 utility functions
+'''
 
 if __name__ == '__main__':
     pass
@@ -15,7 +21,7 @@ from subprocess import check_output, CalledProcessError
 
 
 def run_task(cmd, shell=False):
-    """ run a commandline task """
+    """ Run a commandline task """
     logging.info(cmd)
     if shell:
         out = check_output(" ".join(cmd), shell=True, stderr=subprocess.STDOUT)
@@ -24,7 +30,7 @@ def run_task(cmd, shell=False):
     return out
         
 def files_exist(files):
-    """ check whether a (list of) file(s) exists """
+    """ Check whether a (list of) file(s) exists """
     if (type(files) is list) :
         for f in files:
             if f is None:
@@ -40,7 +46,7 @@ def files_exist(files):
 
 
 def existing_file(files):
-    """ use in argument parser """
+    """ For usage in argument parser """
     if files_exist(files):
         return files
     if (type(files) is list) :
@@ -48,8 +54,8 @@ def existing_file(files):
     else:
         raise ArgumentTypeError("Not all files exist ["+(files)+"]")
     
-# remove a (list of) file(s) (if it/they exists)
 def remove_file(files):
+    """ remove a (list of) file(s) (if it/they exists) """
     if (type(files) is list) :
         for f in files:
             if os.path.exists(f):
@@ -59,7 +65,7 @@ def remove_file(files):
             os.remove(files)
    
 def checkFile(files):
-    """ check whether a file exists and exit if not """
+    """ Check whether a file exists and exit if not """
     if (type(files) is list) :
         for f in files:
             checkFile(f)
@@ -120,7 +126,7 @@ def pipeline_step(inputfile, outFile, cmd, shell=False, stdout=None, append=Fals
         return False        
 
 def index_bam(inFileBam, override=False, exe="samtools"):
-    """ index BAM file with samtoiols """
+    """ Index BAM file with samtoiols """
     success = True
     idxFile = inFileBam + ".bai"
     if(not files_exist(idxFile) or override):
@@ -182,6 +188,7 @@ def sort_bam(inFile, outFile, index=False, override=False, delinFile=False, maxm
 
 
 def bgzip(inFile, outFile=None, override=False, delinFile=False, exe="bgzip"):
+    """ bgzip a file """
     if outFile == None:
         outFile = inFile+".gz"
     success = True    

@@ -1,10 +1,18 @@
+#
+#
+# Copyright (C) 2020 Niko Popitsch.  All rights reserved.
+#
+# This file is part of Nanopanel2
+# 
+# See the file LICENSE for redistribution information.
+#
+# @author: niko.popitsch
+
 '''
-Nanopanel2
+    Main nanopanel2 file
+'''
 
 
-@author: niko.popitsch
-'''
-# Python Standard Library
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import binascii
 from collections import OrderedDict
@@ -16,10 +24,8 @@ import random
 import shutil
 import logging
 
-from Bio.Seq import Seq  # biopython
 import h5py
 from matplotlib.backends.backend_pdf import PdfPages
-from memory_profiler import memory_usage
 import pysam
 from scipy.stats import chi2_contingency, chisquare
 from tqdm import tqdm
@@ -32,9 +38,10 @@ import pyranges as pr
 import seaborn as sns
 from util.utils import files_exist, existing_file, pipeline_step, bgzip, sam2bam, sort_bam, remove_file
 
+# bug in older pyranges version!
+import pkg_resources
+pkg_resources.require("pyranges>=0.0.77")
 
-# 3rd party libs
-# memory profiling
 # Necessary for including python modules from a parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -45,8 +52,10 @@ LOGO = """
  | ' |<_> || ' |/ . \| . \<_> || ' |/ ._>| |
  |_|_|<___||_|_|\___/|  _/<___||_|_|\___.|_| 2
                      |_|                    
-.=============================================.
+.============================ vVERS ==========.
 """
+
+VERSION="1.01"
 
 # BAM flags, @see https://broadinstitute.github.io/picard/explain-flags.html
 # @abstract the read is paired in sequencing, no matter whether it is mapped in a pair
@@ -185,6 +194,13 @@ DEF_CONF = {
 # ###############################################################################
 #                util
 # ###############################################################################
+class MyArgumentParser(ArgumentParser):
+    def error(self, message):
+        print(LOGO.replace("VERS", VERSION))
+        sys.stderr.write('error: %s\n' % message)
+        sys.stderr.write("usage: %s\n" % self.usage)
+        sys.exit(1)
+        
 # set default config keys
 def validate_config(config, mandatory=[]):
     mandatory += MANDATORY_CONF
@@ -579,6 +595,16 @@ def prob2ascii(dat_max):
 def ascii2prob(s):
     return binascii.unhexlify(s)
 
+COMP_TABLE = {
+    "A": 'T', "C": 'G', "T": 'A', "G": 'C'
+    }
+def reverse_complement(seq):
+    rev=[]
+    for c in seq[::-1]:
+        c=c.upper()
+        rev+=[COMP_TABLE.get(c, 'N')]
+    return ''.join(rev)
+
 # ###############################################################################
 #                decorate reads
 # ###############################################################################
@@ -622,7 +648,7 @@ def decorate_reads(config, samples):
                                 if rid not in h5_file.keys():
                                     logging.warning("WARN: read %s not found in fast5 (maybe opened by another process?). Skipping...")
                                 fastq=h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Fastq"][()].splitlines()[1].decode('ascii')
-                                if fastq is None or read.query_sequence is None: # weird special case w/o read query seqeunce or missing fastq data
+                                if fastq is None or read.query_sequence is None: # weird special case w/o read query sequence or missing fastq data
                                     tqdm.write('Could not extract fastq for %s. Skipping read.' % (rid) )
                                     continue
                                 trace = np.array(h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Trace"])
@@ -636,7 +662,7 @@ def decorate_reads(config, samples):
                                                                 np.maximum(rev[:,2], rev[:,6]),
                                                                 np.maximum(rev[:,1], rev[:,5]),
                                                                 np.maximum(rev[:,0], rev[:,4]) ))
-                                    fastq = str(Seq(fastq).reverse_complement())
+                                    fastq = reverse_complement(fastq)
                                 else:
                                     dat_max = np.column_stack(( np.maximum(dat[:,0], dat[:,4]), 
                                                                 np.maximum(dat[:,1], dat[:,5]),
@@ -1979,43 +2005,38 @@ def nanopanel2_pipeline(config, outdir):
     print("All Done.")
 
 if __name__ == "__main__":
-    print(LOGO)    
     MODES = ['call', 'post_filter', 'build_demux_idx', 'calc_haplotypes']
-    #============================================================================
+    #============================================================================ 
+    usage = LOGO.replace("VERS", VERSION) + '''                           
     
-    pipename = "nanopanel2 pipeline"
+Nanopanel2 calls somatic variants in Nanopore panel sequencing data. 
     
-    #============================================================================
-    usage = pipename + '''                           
-    
-    Reads a BAM and a FAST5 file and creates an index containing the flipflop probabilities for all mapped reads.
-    
-    USAGE
-    '''
+USAGE: nanopanel2.py MODE'''
     if len(sys.argv) <= 1 or sys.argv[1] in ['-h', '--help']:
-        print("usage: nanopanel2.py [-h] " + ",".join(MODES))
+        print(usage.replace("MODE", "[" + ",".join(MODES) + "]"))
         sys.exit(1)
     mode = sys.argv[1]  
     if mode not in MODES:
         print("No/invalid mode provided. Please use one of " + ",".join(MODES))
+        print(usage)
         sys.exit(1)
+    usage = usage.replace("MODE", mode)
 
     parser = {}
-    parser["call"] = ArgumentParser(description=usage, formatter_class=RawDescriptionHelpFormatter)
+    parser["call"] = MyArgumentParser(usage="nanopanel2.py call -c [config.json] -o [outdir]", description=usage, formatter_class=RawDescriptionHelpFormatter)
     parser["call"].add_argument("-c","--config", type=existing_file, required=True, dest="confF", help="JSON config file")
     parser["call"].add_argument("-o", "--out", required=True, dest="outF", help="Output dir", type=str)
 
-    parser["post_filter"] = ArgumentParser(description=usage, formatter_class=RawDescriptionHelpFormatter)
+    parser["post_filter"] = MyArgumentParser(usage="nanopanel2.py post_filter -c [infile.vcf] -f  [filters.json] -o [outdir]",description=usage, formatter_class=RawDescriptionHelpFormatter)
     parser["post_filter"].add_argument("-i","--in", type=existing_file, required=True, dest="inF", help="nanopanel2 VCF config file")
     parser["post_filter"].add_argument("-f","--filter", type=existing_file, required=True, dest="filterF", help="filter JSON config file")
     parser["post_filter"].add_argument("-o", "--out", required=True, dest="outF", help="output VCF", type=str)
 
-    parser["build_demux_idx"] = ArgumentParser(description=usage, formatter_class=RawDescriptionHelpFormatter)
+    parser["build_demux_idx"] = MyArgumentParser(usage="nanopanel2.py build_demux_idx -i [input_demux_dir] -o [output_index_file]", description=usage, formatter_class=RawDescriptionHelpFormatter)
     parser["build_demux_idx"].add_argument("-i","--in", type=existing_file, required=True, dest="inF", help="demux dir (from porechop; will be scanned for BCXX.fasta files)")
     parser["build_demux_idx"].add_argument("-o", "--out", required=True, dest="outF", help="output index file", type=str)
-    
-    
-    parser["calc_haplotypes"] = ArgumentParser(description=usage, formatter_class=RawDescriptionHelpFormatter)
+        
+    parser["calc_haplotypes"] = MyArgumentParser(usage="nanopanel2.py calc_haplotypes -i [input.vcf] -b [input.bam] -o [output_prefix]", description=usage, formatter_class=RawDescriptionHelpFormatter)
     parser["calc_haplotypes"].add_argument("-i","--in", type=existing_file, required=True, dest="inF", help="vcf file")
     parser["calc_haplotypes"].add_argument("-b","--bam", type=existing_file, required=True, dest="bamF", help="bam file")
     parser["calc_haplotypes"].add_argument("-o", "--out", required=True, dest="outPrefix", help="haplotype output file prefix", type=str)
@@ -2034,14 +2055,7 @@ if __name__ == "__main__":
             print("Creating dir " + outdir)
             os.makedirs(outdir)
         
-        # profile memory
-        if 'profile_memory' in config and config['profile_memory']:
-            # query mem usage evry 10 s
-            mem_usage = memory_usage( nanopanel2_pipeline(config, outdir), interval=10)
-            # print max mem usage
-            print('Maximum memory usage: %s' % max(mem_usage))
-        else:
-            nanopanel2_pipeline(config, outdir)
+        nanopanel2_pipeline(config, outdir)
     #============================================================================
     if mode == "post_filter":
         filter_config = json.load(open(args.filterF), object_pairs_hook=OrderedDict)    
