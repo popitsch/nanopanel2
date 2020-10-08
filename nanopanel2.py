@@ -55,7 +55,7 @@ LOGO = """
 .============================ vVERS ==========.
 """
 
-VERSION=open('VERSION', 'r').read()
+VERSION=open(os.path.dirname(os.path.abspath(__file__)) + '/VERSION', 'r').read()
 
 # BAM flags, @see https://broadinstitute.github.io/picard/explain-flags.html
 # @abstract the read is paired in sequencing, no matter whether it is mapped in a pair
