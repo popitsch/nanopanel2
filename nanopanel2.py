@@ -16,7 +16,7 @@
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import binascii
 from collections import OrderedDict
-import datetime, time, sys, os, json, pathlib
+import datetime, time, sys, os, commentjson, pathlib
 import itertools
 import math
 from multiprocessing import Pool, Process, Manager
@@ -93,7 +93,7 @@ MAX_DEL = 100
 # ref bases
 BASES = ['A', 'C', 'G', 'T']
 
-# varinat types
+# variant types
 TYPES = ['DEL', 'INS', 'SNV']
 
 # whether to use Yate's correction for SB calculation
@@ -195,14 +195,15 @@ DEF_CONF = {
 #                util
 # ###############################################################################
 class MyArgumentParser(ArgumentParser):
+    """ for parsing commandline arguments """
     def error(self, message):
         print(LOGO.replace("VERS", VERSION))
         sys.stderr.write('error: %s\n' % message)
         sys.stderr.write("usage: %s\n" % self.usage)
         sys.exit(1)
         
-# set default config keys
 def validate_config(config, mandatory=[]):
+    """ Validates configuration file and sets default config keys """
     mandatory += MANDATORY_CONF
         
     for k in mandatory:
@@ -214,39 +215,49 @@ def validate_config(config, mandatory=[]):
             config[k] = DEF_CONF[k]
     return config
 def get_exe(name, config):
+    """ get executable path from config if any """
     return config["exe"][name] if 'exe' in config and name in config["exe"] else name
 def rec_to_str(rec):
+    """ String representation of a alignment record """
     return rec.CHROM + ":" + str(rec.POS)+rec.REF + ">" + ",".join([alt.value if alt.value else "." for alt in rec.ALT])
 def tsv_to_str(rec):
+    """ String representation of a TSV record """
     return rec[0] + ":" + str(rec[1])+rec[2] + ">" + rec[3]
 def is_pass_rec(rec):
+    """ Check whether an alignment record is filtered """
     return ( rec.FILTER==[] or rec.FILTER==["."] or rec.FILTER==["PASS"] )
 def is_pass_tsv(tsv):
+    """ Check whether a TSV record is filtered """
     return ( not tsv[5] ) # 5th column contains 'is_filtered'
 def in_roi( rec, roi):
+    """ check whether an alignment record overlaps with the given region of interest encoded in a pandas dataframe """
     return len( roi[(roi['Chromosome']==rec.CHROM ) & (roi['Start']<rec.POS) & (roi['End']>=rec.POS) ] ) > 0
 def get_var_type( rec ):
+    """ estimate variant type [SNV, DEL, INS] for alignment record """
     ref = rec.REF
     alt = rec.ALT[0].value
     return "SNV" if (len(ref)==1 and len(alt)==1) else "DEL" if len(ref)>len(alt) else "INS"
 def no_none(a):
+    """ return 'NA' if None was passed or the passed value otherwise """
     if a is None:
         return "NA"
     return a
 def save_log(a, def_val):
+    """ return log10(val) if val != 0 or the passed default value otherwise """
     if a == 0:
         return def_val
     return math.log10(a)
 def get_str(s):
+    """ Returns a string representation of the passed variable. If None was passed, 'NA' will be returned. If a list was passed, a string representation of the first element will be returned """ 
     if s is None:
         return "NA"
     if (type(s) is list) :
         return str(s[0])
     return str(s)
     
-# filter alignments with maximum alignment score: this will ensure that there is only one primary alignment per readname in the
-# output BAM to work-around last bug. This method will chose the read with maximum alignmnet score (in AS tag)
 def filter_max_ascore_alignments(in_bam, out_bam):
+    """ Filter alignments with maximum alignment score: this will ensure that there is only one primary alignment per readname in the
+    output BAM to work-around last bug. This method will chose the read with maximum alignment score (in AS tag) """
     rn2as = {}
     # get max AS score per read
     with pysam.AlignmentFile(in_bam, "rb") as bam:  # @UndefinedVariable
@@ -263,9 +274,9 @@ def filter_max_ascore_alignments(in_bam, out_bam):
                 if ascore != rn2as[read.query_name]:
                     continue
                 out.write(read)
-        
-# extract padded ref seq
+
 def get_ref_seq(ref_fasta, chrom, pos1, left=FP_CTX, right=MAX_DEL):
+    """ Extract padded ref seq """
     start = pos1-left-1
     end = pos1+right
     prefix=""
@@ -273,8 +284,9 @@ def get_ref_seq(ref_fasta, chrom, pos1, left=FP_CTX, right=MAX_DEL):
         prefix = "N"*(-start)
         start = 0
     return prefix + ref_fasta.fetch(chrom, start, end).upper()
-# show progress
+
 def show_prog(q, max_value):
+    """ Show progress """
     prog = tqdm(total=max_value, unit=' pos', desc='Calling variants')
     while 1:
         try:
@@ -286,8 +298,8 @@ def show_prog(q, max_value):
         except:
             continue
 
-# counts HP length (any allele) from start
 def count_hp(seq):
+    """ Counts HP length (any allele) from start """
     hp_char=None
     hp_count=0
     for base in seq:
@@ -299,8 +311,8 @@ def count_hp(seq):
             break
     return hp_count, hp_char
 
-# counts HP len of passed allele from start
 def count_hp_alt(seq, allele):
+    """ Counts the HP len of passed allele from start """
     hp_len=0
     while len(seq)>len(allele):
         if not seq.startswith(allele):
@@ -309,8 +321,8 @@ def count_hp_alt(seq, allele):
         seq = seq[len(allele):]
     return hp_len
     
-# find max outliers (i.e., probably real insertions/deletions) or any allele with a given min count
 def get_max_outliers(data, overlapping_data=[], min_n=5, min_count=0):
+    """ find max outliers (i.e., potentially real insertions/deletions) or any allele with a given min count """
     test_data = data + overlapping_data
     if (len(test_data)<min_n):
         # not enough data to test for outliers: report all alleles with a min count
@@ -326,6 +338,7 @@ def get_max_outliers(data, overlapping_data=[], min_n=5, min_count=0):
 #                Build readname / barcode index
 # ###############################################################################  
 def build_demux_idx(in_dir, out_file):
+    """ Build readname / barcode index """
     stats={}
     with open(out_file, 'w') as out:
         for file in os.listdir(in_dir):
@@ -343,8 +356,9 @@ def build_demux_idx(in_dir, out_file):
     logging.info("Barcode stats:")
     logging.info(stats)
     logging.info("Finished building demux index")       
-# load the index
+# 
 def load_demux_idx(in_file): 
+    """ Load the demux index file """
     demux_index={}
     bc = None
     with open(in_file, 'r') as fp:
@@ -357,6 +371,7 @@ def load_demux_idx(in_file):
     return demux_index
 
 def demultiplex_reads(config, outdir):
+    """ Demultiplexes reads with porechop """
     logging.info("-----------------------------------------------")
     logging.info("Demultiplexing reads")
     logging.info("-----------------------------------------------")
@@ -389,6 +404,7 @@ def demultiplex_reads(config, outdir):
 #                Dataset samples
 # ###############################################################################
 class Sample():
+    """ Dataset samples """
     def __init__(self, config, outdir, name, barcode, read_names ):
         self.config = config
         self.outdir = outdir
@@ -433,6 +449,7 @@ class Sample():
 #                extract FASTQ 
 # ###############################################################################
 def extract_fastq(config, demux_index, outdir):
+    """ Extracts FASTQ from FAST5 files """
     logging.info("-----------------------------------------------")
     logging.info("Extract FASTQ data")
     logging.info("-----------------------------------------------")
@@ -517,6 +534,7 @@ def extract_fastq(config, demux_index, outdir):
 #                map reads
 # ###############################################################################
 def map_reads(config, samples):
+    """ Maps reads using the configured long-read mappers """
     logging.info("-----------------------------------------------")
     logging.info("Map reads")
     logging.info("-----------------------------------------------")
@@ -579,13 +597,14 @@ def map_reads(config, samples):
                     sys.exit(1)
     return samples 
 
-# helper
 def get_read_count(bam_file):
+    """ Quick estimate of read count in a BAM file """
     lines = pysam.idxstats(bam_file).splitlines()  # @UndefinedVariable
     total_records = sum([int(l.split("\t")[2]) for l in lines if not l.startswith("#")])
     return total_records
 
 def prob2ascii(dat_max):
+    """ Convert a probability value to an ASCII representation """
     pA = binascii.hexlify(bytes(dat_max[:,0].tolist()))
     pC = binascii.hexlify(bytes(dat_max[:,1].tolist()))
     pG = binascii.hexlify(bytes(dat_max[:,2].tolist()))
@@ -593,12 +612,15 @@ def prob2ascii(dat_max):
     return pA,pC,pG,pT
 
 def ascii2prob(s):
+    """ Converts an ASCII representation to a probability value """
     return binascii.unhexlify(s)
 
 COMP_TABLE = {
+    """ Table of reverse complement bases """
     "A": 'T', "C": 'G', "T": 'A', "G": 'C'
     }
 def reverse_complement(seq):
+    """ Calculate reverse complement DNA sequence """
     rev=[]
     for c in seq[::-1]:
         c=c.upper()
@@ -609,6 +631,7 @@ def reverse_complement(seq):
 #                decorate reads
 # ###############################################################################
 def decorate_reads(config, samples):
+    """ Adds tags containing guppy probabilities to a BAM file """ 
     logging.info("-----------------------------------------------")
     logging.info("Extract guppy probabilities")
     logging.info("-----------------------------------------------")
@@ -699,6 +722,7 @@ def decorate_reads(config, samples):
 #                downsample reads
 # ###############################################################################
 def downsample_reads(config, samples):
+    """ Downsamples a BAMN file """
 
     if ('max_reads' in config) and (config['max_reads'] != 'unlimited'):
         logging.info("-----------------------------------------------")
@@ -748,6 +772,7 @@ def downsample_reads(config, samples):
 # Variant call 
 # .........................................................................
 class VariantCall():
+    """ A variant call """
     
     # SNVs only
     # calc contingency matrix and strand bias 
@@ -779,9 +804,8 @@ class VariantCall():
 
         return aa_skew, sb_pvalue, c_ref, c_alt, c_ref_corr, c_alt_corr
 
-    # SNVs only
-    # calc pX for non-AA and chi2 test
     def calc_corrected_aa_count(self, alt_base):
+        """ SNVs only. Calc corrected read counts and pX for non-AA and chi2 test """
         if not alt_base:
             return None, None
         AB = list(BASES)
@@ -805,9 +829,8 @@ class VariantCall():
         return corrected_aa_count, corrected_aa_count/self.s.dp, np.mean(non_alt_avg_prob) if len(non_alt_avg_prob)>0 else 0
                    
 
-    # INDELs only
-    # calc aa skew
     def calc_aa_skew(self, alt_base, plus_read_frac):
+        """ INDELs only. Calculate AA skew """
         c_alt_all=self.s.counts[alt_base] if alt_base in self.s.counts else 0
         c_alt_plus=self.s.counts_plus[alt_base] if alt_base in self.s.counts_plus else 0
         # add pseudo-counts. array of [+.-] reads
@@ -822,9 +845,8 @@ class VariantCall():
         #logging.info("%s:%i +: %i -: %i aas: %f" % ( self.chr, self.ref_pos1, plus, minus, aa_skew ) )        
         return aa_skew, c_alt, c_alt_corr
     
-
-    # calculate HP filter
     def calc_hp_filter(self, max_hp_run):
+        """ calculate HP filter """
         seq_eq_ins = False
         ctx=self.s.ref_bases
         if self.type =='SNV':
@@ -860,7 +882,6 @@ class VariantCall():
 
     
     def __init__(self, pileup_stats, aa, vtype):
-
         self.s = pileup_stats
         self.config = self.s.config
         self.type = vtype
@@ -964,8 +985,8 @@ class VariantCall():
             else:
                 self.quality = None 
  
-    # -10log_10 p(no variant). 
     def calc_quality(self):
+        """ Calculates Phred-score call quality values """ 
         quality = None
         if (self.type == 'SNV') and (self.non_alt_avg_prob is not None):
             quality = min(100, -10 * math.log10( self.non_alt_avg_prob ) if (self.non_alt_avg_prob>0) else 0 )
@@ -987,12 +1008,15 @@ class VariantCall():
         return quality
  
     def is_filtered(self):
+        """ True if call is filtered """
         return len(self.filters)>0
     
     def is_nocall(self):
+        """ True if this is a no-call """
         return self.alt_allele is None
     
     def get_ref_alt(self):
+        """ get reference and alternate allele strings """
         if self.type == 'DEL':
             ref = self.s.ref_bases[FP_CTX:FP_CTX+(-self.alt_allele)+1] # note: alt-allele is - number of deleted bases (e.g., -3)
             alt = self.s.ref_bases[FP_CTX]
@@ -1006,11 +1030,9 @@ class VariantCall():
             sys.exit("unknown variant type %s" % self.type)
         return ref, alt
     
-    # ...................................................................
-    # Create INDEL record (or None)                           
-    # ...................................................................
-    def to_vcf(self):
 
+    def to_vcf(self):
+        """ Convert to a vcfpy record """
         INFO=vcfpy.OrderedDict()
         INFO['SOMATIC']=1
         INFO['AF'] =   (str(self.vaf_raw))
@@ -1051,10 +1073,8 @@ class VariantCall():
         
         return vcf_record
  
-    # ...................................................................
-    # Create TSV record (or None)                           
-    # ...................................................................
     def to_tsv(self):
+        """ Convert to a TSV record """
         return ([
             self.s.chr,
             self.s.ref_pos1,
@@ -1086,8 +1106,8 @@ class VariantCall():
             1 ])  
         
 
-# creates a FN entry for missing calls
 def create_missing_record(truth_var_rec):
+    """ Creates a FN TSV entry for missing calls """
     return ([
             truth_var_rec.CHROM,
             truth_var_rec.POS,
@@ -1119,10 +1139,8 @@ def create_missing_record(truth_var_rec):
             0 ])
               
 # ...................................................................
-# For collecting pileup stats
-# ................................................................... 
 class PileupStats():
-
+    """ Pileup statistics """
     def __init__(self, sample_name, chrom, ref_pos1, ref_bases, dp, config):
         self.sample_name = sample_name
         self.chr = chrom
@@ -1142,9 +1160,8 @@ class PileupStats():
         self.count_plus_reads = 0 # number of plus-strand reads
 
     # ...................................................................
-    # Calculate additional measures, should be called after all data raw is collected                    
-    # ...................................................................
     def call_variants(self, overlapping_del=[], overlapping_del_pos=None):
+        """ Calculate additional measures, should be called after all data raw is collected """
         
         # sort alt-alleles by counts, e.g., [('A', 130), ('-1', 30), ('+2', 20), ('-12', 10)]
         mfaa = [(k,v) for k, v in sorted({i:self.counts[i] for i in self.counts}.items(), key=lambda item: item[1], reverse=True)]
@@ -1201,11 +1218,9 @@ class PileupStats():
 
         return calls, overlapping_del, self.ref_pos1
 
-
-# .........................................................................
-#                CALL variants
 # ......................................................................... 
-def call_variants_in_roi(args) :
+def call_variants_in_roi(args):
+    """ Call variants in ROI """
     sample_name, chrom, start, end, bam_file, config, queue = args
     vcf_records = []
     tsv_records=[]
@@ -1330,9 +1345,8 @@ def call_variants_in_roi(args) :
     return (chrom+"_"+str(start)+"_"+str(end), vcf_records, tsv_records, uncalled_pos, debug_signal, chr_stats)
 
 # .........................................................................
-#                Load truthe set VCF
-# .........................................................................
 def load_truth_set(config, s):
+    """ Load truth set VCF """
     if 'truth_vcf' in config:
         truth_vcf_file = config['truth_vcf']
         # demultiplex samples.
@@ -1362,12 +1376,13 @@ def load_truth_set(config, s):
 #                CALL variants
 # ......................................................................... 
 def call_variants(config, samples, outdir):
+    """ call variants """
     logging.info("-----------------------------------------------")
     logging.info("Call variants")
     logging.info("-----------------------------------------------")
     config = validate_config(config)
     with open(outdir + config["dataset_name"] + ".effective_config.json", 'w') as out:
-        print(json.dumps(config, indent=4, sort_keys=True), file=out)
+        print(commentjson.dumps(config, indent=4, sort_keys=True), file=out)
 
     # .........................................................................
     #                load ref seq and ROI
@@ -1598,6 +1613,7 @@ def call_variants(config, samples, outdir):
 #                Calculate consensus VCF 
 # ###############################################################################
 class VCFPOS():
+    """ Unique position in a VCF file """ 
     def __init__(self, rec ):
         self.pos = rec.POS
         self.ref = rec.REF
@@ -1611,8 +1627,8 @@ class VCFPOS():
     def __hash__(self):
         return hash(self.__repr__())
 
-# a consensus VCF call
 def consensus_call(calls, truth_records):
+    """ Calculate a consensus (majority vote) call from the passed calls """
     nonull = [x for x in calls if (x is not None)]
     
     if len(nonull)==0:
@@ -1670,8 +1686,8 @@ def consensus_call(calls, truth_records):
 
     return vcf_record    
 
-# create TSV from VCF
 def create_consensus_tsv(v, truth_records, truth_filtered ):
+    """ Creates a consensus TSV file """
     r = [ 
         v.CHROM,
         v.POS,
@@ -1697,8 +1713,8 @@ def create_consensus_tsv(v, truth_records, truth_filtered ):
     return r
             
 
-# calculate consensus VCF 
 def calc_consensus(config, samples, outdir):
+    """ calculate consensus VCF  """
     logging.info("-----------------------------------------------")
     logging.info("Calculate consensus vcf")
     logging.info("-----------------------------------------------")
@@ -1754,8 +1770,8 @@ def calc_consensus(config, samples, outdir):
 # ###############################################################################
 #                Post-filter variants 
 # ###############################################################################
-
 def post_filter(vcf_file, filter_config, out_file):
+    """ Post-filtering of variants """
     if not files_exist(vcf_file):
         sys.exit("Could not find nanopanel2 output vcf file at %s" % (vcf_file) )
     FILTERS = ['AF','CNT_RAW','SB_P','AA_SKEW','HP_FRAC','HP_LEN','TYPE','VAF_CORR','CNT_CORR','BASE_QUAL']
@@ -1799,11 +1815,13 @@ def post_filter(vcf_file, filter_config, out_file):
 #                Calculate haplotypes 
 # ###############################################################################
 def calc_all_haplotypes(config, samples):
+    """ Calculate all haplotypes for all passed samples """
     for s in samples:
         for m in config['mappers']:
             calc_haplotypes (s.vcf_file[m], s.bam_file[m], s.hap_file_prefix[m], config['max_dp'], config['min_base_quality'], m)
             
 def calc_haplotypes(vcf_file, bam_file, hap_file_prefix, max_dp = DEF_CONF['max_dp'], min_base_quality = DEF_CONF['min_base_quality'], mapper=None):
+    """ Calculate haplotypes for the passed sample """
 
     logging.info("-----------------------------------------------")
     logging.info("Calculating haplotypes")
@@ -1961,6 +1979,7 @@ def calc_haplotypes(vcf_file, bam_file, hap_file_prefix, max_dp = DEF_CONF['max_
 #                Main 
 # ###############################################################################
 def nanopanel2_pipeline(config, outdir):
+    """ Main nanopanel2 pipeline """
     startTime = time.time()
     
     # init logging
@@ -2045,7 +2064,7 @@ USAGE: nanopanel2.py MODE'''
     args = parser[mode].parse_args(sys.argv[2:])
     #============================================================================
     if mode == "call":    
-        config = json.load(open(args.confF), object_pairs_hook=OrderedDict)    
+        config = commentjson.load(open(args.confF), object_pairs_hook=OrderedDict)    
         # ensure dirs
         outdir = args.outF
         if not outdir.endswith("/"):
@@ -2058,7 +2077,7 @@ USAGE: nanopanel2.py MODE'''
         nanopanel2_pipeline(config, outdir)
     #============================================================================
     if mode == "post_filter":
-        filter_config = json.load(open(args.filterF), object_pairs_hook=OrderedDict)    
+        filter_config = commentjson.load(open(args.filterF), object_pairs_hook=OrderedDict)    
         post_filter( args.inF, filter_config, args.outF )
     #============================================================================
     if mode == "build_demux_idx":

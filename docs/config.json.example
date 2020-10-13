@@ -1,0 +1,51 @@
+{
+        "dataset_name": "my_dataset",					# name of this dataset (will be used in the output file names/tables)
+        "ref":          "amplicon_sequence.fasta", 		# the amplicon reference sequence
+        "fast5_dir":    "guppy_output/workspace/",		# workspace output dir of guppy that contains basecalled FAST5 files 
+        "fastq_dir":    "guppy_output/",				# output dir of guppy that contains fastq.gz files; needed by porechop and can be omitted if no demultiplexing is configured 
+        "basecall_grp": "Basecall_1D_001",				# the used basecall group identifier in the FAST5 files
+        "demultiplex": {								# This section is required only for multiplexed datasets.
+                "BC01": "S01",							# Maps the 1st barcode ('BC01') to a sample identified that will be used in the output files 
+                "BC02": "S02",
+                "BC03": "S03",
+                "BC04": "S04",
+                "BC05": "S05",
+                "BC06": "S06",
+                "BC07": "S07",
+                "BC08": "S08"
+                },
+        "logfile": "nanopanel2.log",					# name of the log file
+        "consensus": "mean",							# used for consensus calculation (only if multiple mappers are configured)
+        "mappers": {									# configured long-read mappers. Supported types are 'minimap2', 'ngmlr' and 'last'. 
+       
+                "mm2" : {							
+                        "type": "minimap2"
+                        },
+                "ngms": {
+                        "type": "ngmlr",
+                        "additional_param": [ "--no-smallinv", "--no-lowqualitysplit", "-k", "10", "--match", "3", "--mismatch", "-3", "--bin-size", "2", "--kmer-skip", "1" ]
+                        },
+                "last": {
+                        "type": "last"
+                        }
+                },
+        "roi_intervals": ["NM_005157.5:275-1705"],		# list of genomic intervals in which variant calling will be done 
+        "truth_vcf": {									# only required if truith-set data is available. Links sample identifiers to truth set VCF files.
+                "S01": "truth_vcf/S01.exp.vcf",
+                "S02": "truth_vcf/S02.exp.vcf",
+                "S03": "truth_vcf/S03.exp.vcf",
+                "S04": "truth_vcf/S04.exp.vcf",
+                "S05": "truth_vcf/S05.exp.vcf",
+                "S06": "truth_vcf/S06.exp.vcf",
+                "S07": "truth_vcf/S07.exp.vcf",
+                "S08": "truth_vcf/S08.exp.vcf"
+                },
+        "threads":      8,								# number of CPUs/threads used by np2 and 3rd part tools
+        "suppress_snv": [],								# list of filters; SNV calls filtered by those will not be included in the output VCF (but will still be in the output TSV file)
+        "suppress_del": ["AF", "DP"],
+        "suppress_ins": ["AF", "DP"],
+        "max_h5_cache": 500,							# maximum number of cached H5 files. Setting this to a number >= the number of input FAST5 will greatly speed up the pipeline (at the cost of memory) 
+        "exe": {										# this section enables users to link to executables for 3rd party tools. Supported sections: 'bgzip', 'samtools', 'porechop', 'minimap2', 'ngmlr', 'last')
+                "ngmlr":    "singularity run $SOFTWARE/SIF/ngmlr_0.2.7.sif"
+        }
+}
