@@ -565,18 +565,18 @@ def map_reads(config, samples):
                     # get last_db. Usually this is named as the ref file
                     last_db = config['mappers'][m]['last_db'] if 'last_db' in config['mappers'][m] else os.path.splitext(ref)[0]+'.last_db'
                     # step1 : align
-                    cmd = [get_exe("last", config), "lastal", "-Q1", last_db, s.fastq_file+'.gz']
+                    cmd = [get_exe("lastal", config), "-Q1", last_db, s.fastq_file+'.gz']
                     tmp_file = s.sam_file[m]+'.tmp'
                     success = pipeline_step(s.fastq_file+'.gz', tmp_file, cmd, shell=True, stdout=tmp_file)
                     # step 2: split and create MAF file
-                    cmd = [get_exe("last", config), "last-split", "<", tmp_file]
+                    cmd = [get_exe("last-split", config), "<", tmp_file]
                     maf_file = s.sam_file[m]+'.maf'
                     success = pipeline_step(tmp_file, tmp_file, cmd, shell=True, stdout=maf_file)
                     # step 3: create SAM
                     with open(s.sam_file[m], 'w') as out:
                         print("@HD\tVN:1.0\tSO:coordinate\t", file = out)
                         print("@PG\tID:last\tPN:last\tVN:i1042\tCL:lastal -Q1 %s %s | last-split" % (last_db, s.fastq_file+'.gz') , file = out)
-                    cmd = [get_exe("last", config), "maf-convert", "SAM",maf_file]
+                    cmd = [get_exe("maf-convert", config), "SAM",maf_file]
                     success = pipeline_step(maf_file, s.sam_file[m], cmd, shell=True, stdout=s.sam_file[m], append=True)
                     if success:
                         remove_file([tmp_file, maf_file])
