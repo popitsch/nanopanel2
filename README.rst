@@ -17,6 +17,9 @@ Np2 works directly on FAST5 files and outputs VCF v4.2 and TSV files containing
 variant calls. It also produces haplotype map PDFs that inform about the haplotypes
 of called (PASS) variants.
 
+.. image:: docs/np2_block_diagram.png
+   :alt: np2 block diagram
+
 
 Installation
 ============
@@ -49,6 +52,31 @@ Note that the call path of the respective tools can be configured in np2's JSON 
 .. _last: http://last.cbrc.jp/
 
 
+Input data
+==========
+To run np2, you need the following input data files:
+
+* Guppy-basecalled FAST5 files [required]
+* FASTA file containing all considered amplicon sequences [required]
+
+Additionally, you can provide a truth-set VCF file per sample if you want to measure the performance of np2 on your data.
+
+Np2 supports multiplexed input data and can be configured to automatically run porechop for demultiplexing before any further processing is done.
+Note that you do not need to configure all of your multiplexed samples in case you want to process only a subset of them. Np2 will ignore the 
+other samples in this case.  
+
+
+Configuration file
+------------------
+
+Np2 is fully configured via a single JSON configuration file, `a commented example`_ can be found in the docs folder.
+Please note that np2 uses the `commentjson`_ package to parse input JSON files, so you can use Python/JavaScript style inline comments.
+ 
+.. include:: docs/config.json.example
+
+.. _`a commented example`: docs/config.json.example
+.. _commentjson: https://github.com/vaidik/commentjson
+
 General usage
 =============
 
@@ -56,16 +84,11 @@ General usage
 
    singularity run nanopanel2_XXX.sif call --conf config.json --out .
 
-We recommend to run np2 with 128gb of RAM and 8 cores (configure via the 'threads' parameter in the JSON config file). 
+Runtime and memory requirements strongly depend on the size of input data.
+We recommend to run np2 with at least 64gb RAM, larger flowcells may require 128gb.
+The number of used CPU cores/threads (we recommend at least 8) is configurable via 
+the 'threads' parameter in the JSON config file. 
 
-Configuration file
-------------------
-
-Np2 is configured via a single JSON configuration file, `a commented example`_ can be found in the docs folder.
-Please note that np2 uses the `_commentjson`_ package to parse input JSON files, so you can use Python/JavaScript style inline comments.
- 
-.. include:: docs/config.json.example
-
-.. _`a commented example`: docs/config.json.example
-.. _commentjson: https://github.com/vaidik/commentjson
-
+Np2 now runs the whole processing pipeline (see block diagram above) and produces result files
+along the way. If np2 fails at some stage you can typically restart it and it continues the pipeline
+from the stage that failed. 

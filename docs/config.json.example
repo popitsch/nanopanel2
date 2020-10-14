@@ -44,7 +44,7 @@
         "suppress_del": ["AF", "DP"],
         "suppress_ins": ["AF", "DP"],
         "max_h5_cache": 500,                            # maximum number of cached H5 files. Setting this to a number >= the number of input FAST5 will greatly speed up the pipeline (at the cost of memory) 
-        "exe": {                                        # this section enables users to link to executables for 3rd party tools. Supported sections: 'bgzip', 'samtools', 'porechop', 'minimap2', 'ngmlr', 'last')
+        "exe": {                                        # this section enables users to link to executables for 3rd party tools. Not needed when running via singularity. Supported sections: 'bgzip', 'samtools', 'porechop', 'minimap2', 'ngmlr', 'lastal', 'last-split', 'maf-convert')
                 "ngmlr":    "singularity run $SOFTWARE/SIF/ngmlr_0.2.7.sif"  # in this example, ngmlr is called via an (external) singularity image
         }
 }
