@@ -24,12 +24,12 @@ of called (PASS) variants.
 Installation
 ============
 
-The recommended way to use np2 is via the released `Singularity`_ v3.6.1 image which contains all required 3rd party tools in the supported software versions.
+The recommended way to use np2 is via the released `Singularity`_ v3.4.1 image which contains all required 3rd party tools in the supported software versions.
 
 .. _Singularity: https://sylabs.io/docs/
 
 Users that prefer to run the python code directly should make sure that the following
-3rd party tools are available
+3rd party tools are available:
 
 3rd Party tools
 ---------------
@@ -65,6 +65,31 @@ Np2 supports multiplexed input data and can be configured to automatically run p
 Note that you do not need to configure all of your multiplexed samples in case you want to process only a subset of them. Np2 will ignore the 
 other samples in this case.  
 
+
+Guppy preprocessing
+-------------------
+
+Np2 input FAST5 files must contain `guppy`_ basecalling information. Np2 was developed and tested with guppy v3.6.1, an example commanline to call guppy is: 
+
+
+::
+
+   guppy_basecaller \
+        -i fast5_file \
+        -s output_dir \
+        -c dna_r9.4.1_450bps_hac.cfg \
+        --hp_correct on \
+        --fast5_out \
+        --trace_categories_logs Move \
+        --num_callers 14 \
+        --gpu_runners_per_device 8 \
+        --chunks_per_runner 768 \
+        --chunk_size 500 \
+        --disable_pings \
+        --compress_fastq \
+        -x auto
+
+.. _guppy: https://community.nanoporetech.com/protocols/Guppy-protocol/v/GPB_2003_v1_revT_14Dec2018
 
 Configuration file
 ------------------
