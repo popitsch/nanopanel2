@@ -615,8 +615,8 @@ def ascii2prob(s):
     """ Converts an ASCII representation to a probability value """
     return binascii.unhexlify(s)
 
+# Table of reverse complement bases
 COMP_TABLE = {
-    """ Table of reverse complement bases """
     "A": 'T', "C": 'G', "T": 'A', "G": 'C'
     }
 def reverse_complement(seq):
