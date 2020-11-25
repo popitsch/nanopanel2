@@ -661,12 +661,12 @@ Licenses for Third-Party Components
    License documents for the individual software are provided in the 'licenses'
    directory.
    
-   software				license			url
+   software    license      url
    -----------------------------------------
-   porechop				GPL3			https://github.com/rrwick/Porechop
-   minimap2				MIT				https://github.com/lh3/minimap2
-   ngmlr				MIT				https://github.com/philres/ngmlr
-   last					GPL3			http://last.cbrc.jp/doc/last.html
-   htslib				MIT/Expat		https://github.com/samtools/htslib
-   samtools				MIT/Expat		https://github.com/samtools/samtools
+   porechop    GPL3         https://github.com/rrwick/Porechop
+   minimap2    MIT          https://github.com/lh3/minimap2
+   ngmlr       MIT          https://github.com/philres/ngmlr
+   last        GPL3         http://last.cbrc.jp/doc/last.html
+   htslib      MIT/Expat    https://github.com/samtools/htslib
+   samtools    MIT/Expat    https://github.com/samtools/samtools
   
