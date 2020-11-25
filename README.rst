@@ -121,7 +121,7 @@ from the stage that failed.
 License
 =======
 
-Copyright (c) Niko Popitsch.
+Copyright (c) 2020 Niko Popitsch.
 
 License information can be found in the `LICENSE`_ file.
 
