@@ -13,9 +13,9 @@ Introduction
 ============
 
 Nanopanel2 (np2) is a somatic variant caller for Nanopore panel sequencing data.
-Np2 works directly on FAST5 files and outputs VCF v4.2 and TSV files containing 
-variant calls. It also produces haplotype map PDFs that inform about the haplotypes
-of called (PASS) variants.
+Np2 works directly on basecalled FAST5 files and outputs VCF v4.2 and TSV files containing 
+variant calls and associated statistics. It also produces haplotype map TSV and PDF files that 
+inform about haplotype distributions of called (PASS) variants.
 
 .. image:: docs/np2_block_diagram.png
    :alt: np2 block diagram
@@ -117,3 +117,15 @@ the 'threads' parameter in the JSON config file.
 Np2 now runs the whole processing pipeline (see block diagram above) and produces result files
 along the way. If np2 fails at some stage you can typically restart it and it continues the pipeline
 from the stage that failed. 
+
+License
+=======
+
+Copyright (c) Niko Popitsch.
+
+License information can be found in the `LICENSE`_ file.
+
+This distribution may include materials developed by third parties.
+For license and attribution notices for these materials, please refer to the LICENSE file.
+  
+.. _`LICENSE`: LICENSE

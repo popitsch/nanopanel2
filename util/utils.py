@@ -2,10 +2,30 @@
 #
 # Copyright (C) 2020 Niko Popitsch.  All rights reserved.
 #
-# This file is part of Nanopanel2
+# This file is part of Nanopanel2, a somatic variant caller for Nanopore sequencing data.
 # 
-# See the file LICENSE for redistribution information.
+# Commercial License Usage
+# 
+# Licensees holding valid commercial nanopanel2 licenses may use this file in
+# accordance with the commercial license agreement provided with the
+# Software. For licensing terms and conditions see the file LICENSE.
+# 
+# Alternatively, you may use this file under the terms of the 
+# GNU Affero General Public License v3.0 license as set out in the LICENSE file
 #
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU Affero General Public License as published
+#     by the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+# 
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU Affero General Public License for more details.
+# 
+#     You should have received a copy of the GNU Affero General Public License
+#     along with this program.  If not, see <https://www.gnu.org/licenses/>
+#    
 # @author: niko.popitsch
 
 '''
