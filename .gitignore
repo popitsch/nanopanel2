@@ -1,3 +1,6 @@
 /requirements.licenses.tsv
 /TODO.txt
 /releases/
+__pycache__/
+*.py[cod]
+*$py.class
