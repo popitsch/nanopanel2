@@ -21,12 +21,19 @@ inform about haplotype distributions of called (PASS) variants.
    :alt: np2 block diagram
 
 
+A preprint describing and evaluating the Nanopanel2 software is available at `bioarxiv.org`_.
+
+.. _bioarxiv.org: https://doi.org/10.1101/2020.11.06.370858 
+
 Installation
 ============
 
-The recommended way to use np2 is via the released `Singularity`_ v3.4.1 image which contains all required 3rd party tools in the supported software versions.
+The recommended way to use np2 is via the released `Singularity`_ v3.4.1 images which contains all 
+required 3rd party tools in the supported software versions. Nanopanel2 SIF files can be found in the
+`releases`_ sections.
 
 .. _Singularity: https://sylabs.io/docs/
+.. _releases: https://github.com/popitsch/nanopanel2/releases/
 
 Users that prefer to run the python code directly should make sure that the following
 3rd party tools are available:
@@ -109,7 +116,7 @@ General usage
 
    singularity run nanopanel2_XXX.sif call --conf config.json --out .
 
-Runtime and memory requirements strongly depend on the size of input data.
+Runtime and memory requirements strongly depend on the size of input data and the number of configured threads.
 We recommend to run np2 with at least 64gb RAM, larger flowcells may require 128gb.
 The number of used CPU cores/threads (we recommend at least 8) is configurable via 
 the 'threads' parameter in the JSON config file. 
@@ -121,11 +128,26 @@ from the stage that failed.
 License
 =======
 
+Nanopanel2 is free for academic use.
+   
+If you want to use Nanopanel2 for commercial applications but don't want to adhere to the GNU Affero General Public License v3.0, you can purchase a commercial license. 
+Please contact the author in this case.   
+   
 Copyright (c) 2020 Niko Popitsch.
 
-License information can be found in the `LICENSE`_ file.
+Detailed license information can be found in the `LICENSE`_ file.
 
 This distribution may include materials developed by third parties.
 For license and attribution notices for these materials, please refer to the LICENSE file.
   
 .. _`LICENSE`: LICENSE
+
+Citation
+========
+
+If you make use of nanopanel2, please cite our preprint:
+
+    Nanopanel2 calls phased low-frequency variants in Nanopore panel sequencing data.
+    Niko Popitsch, Sandra Preuner and Thomas Lion.
+    bioRxiv 2020.11.06.370858; doi: https://doi.org/10.1101/2020.11.06.370858
+ 

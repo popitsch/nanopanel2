@@ -6,10 +6,13 @@ Last updated: November 2020
 
 Introduction
 
-	This document contains the Nanopanel2 license and licensing information 
-	for third-party software which may be included in a distribution of 
+	This document contains the Nanopanel2 software license and licensing 
+	information for third-party software which may be included in a distribution of 
 	Nanopanel2.
 
+	The Nanopanel2 is free for academic use.
+	If you want to use nanopanel2 for commercial applications you should
+	
 	
 =====================================================================
 	
@@ -20,14 +23,16 @@ Licensing Information
 	License v3.0' as set forth below or negotiate a commercial license, depending on 
 	their needs.
 
-	If you use nanopanel2 software but don't want to adhere to the GNU Affero General 
-	Public License v3.0, you can purchase a commercial license. 
-	Please contact XXX in this case.	
+	Nanopanel2 is free for academic use.
+	
+	If you want to use Nanopanel2 for commercial applications but don't want to adhere 
+	to the GNU Affero General Public License v3.0, you can purchase a commercial license. 
+	Please contact the author in this case.	
 
 	Copyright (c) 2020, Niko Popitsch
    
 
-=====================================================================
+===================================================s==================
 
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
