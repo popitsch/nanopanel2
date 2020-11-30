@@ -85,7 +85,6 @@ Np2 input FAST5 files must contain `guppy`_ basecalling information. Np2 was dev
         -i fast5_file \
         -s output_dir \
         -c dna_r9.4.1_450bps_hac.cfg \
-        --hp_correct on \
         --fast5_out \
         --trace_categories_logs Move \
         --num_callers 14 \
