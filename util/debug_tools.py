@@ -46,7 +46,7 @@ import pysam
 # Necessary for including python modules from a parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from util.utils import existing_file
+from utils import existing_file
 
 # BAM flags, @see https://broadinstitute.github.io/picard/explain-flags.html
 # @abstract the read is paired in sequencing, no matter whether it is mapped in a pair
@@ -203,6 +203,5 @@ USAGE: debug_tools.py MODE'''
     args = parser[mode].parse_args(sys.argv[2:])
     #============================================================================
     if mode == "extract_guppy_distributions":    
-        config = commentjson.load(open(args.confF), object_pairs_hook=OrderedDict)    
         extract_guppy_distributions(args.bam_file, args.pos_file, args.out_file)
         
