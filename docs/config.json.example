@@ -29,7 +29,7 @@
                         }
                 },
         "roi_intervals": ["chr:100-1000"],              # list of genomic intervals in which variant calling will be done 
-        "truth_vcf": {                                  # only required if truth-set data is available. Links sample identifiers to truth set VCF files.
+        "truth_vcf": {                                  # This section is only required if truth-set data is available. Links sample identifiers to truth set VCF files.
                 "S01": "truth_vcf/S01.exp.vcf",
                 "S02": "truth_vcf/S02.exp.vcf",
                 "S03": "truth_vcf/S03.exp.vcf",
