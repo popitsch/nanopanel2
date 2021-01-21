@@ -39,14 +39,14 @@ import logging
 import sys, os, commentjson
 import pandas as pd
 import binascii
-
+from utils import existing_file
 import pysam
 
 
 # Necessary for including python modules from a parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from utils import existing_file
+
 
 # BAM flags, @see https://broadinstitute.github.io/picard/explain-flags.html
 # @abstract the read is paired in sequencing, no matter whether it is mapped in a pair
@@ -88,6 +88,7 @@ def extract_guppy_distributions(bam_file, pos_file, out_file):
     logging.info("-----------------------------------------------")
     config={}
     config['max_dp']=100000
+    config['max_af']=0.1
     config['min_base_quality']=0
     config["tag_pA"]="pA" # BAM TAG used to store pA values
     config["tag_pC"]="pC" # BAM TAG used to store pC values
@@ -96,7 +97,7 @@ def extract_guppy_distributions(bam_file, pos_file, out_file):
 
 
     allpos = pd.read_csv(pos_file, sep='\t')
-    allpos=allpos[allpos['type']=='SNV']
+    allpos=allpos[(allpos['type']=='SNV') & (allpos['vaf_raw']<=config['max_af'])]
     pos={}
     for status in ['TP','TN','FP','FN']:
         pos[status]=allpos[allpos['truth_status']==status]
@@ -113,6 +114,7 @@ def extract_guppy_distributions(bam_file, pos_file, out_file):
                     'ref_base',
                     'alt_base',
                     'truth_status',
+                    'vaf_raw',
                     'dp',
                     'p_ref',
                     'p_alt',
@@ -135,6 +137,7 @@ def extract_guppy_distributions(bam_file, pos_file, out_file):
             ref_base = str(p['ref']) # this is the refc at the current position
             alt_base = str(p['alt'])
             truth_status = str(p['truth_status'])
+            vaf_raw= str(p['vaf_raw'])
             dp = pileup_column.get_num_aligned()
             #print(chrom, ref_pos1, ref_base, alt_base, dp, truth_status)
             # iterate reads and collect stats\
@@ -171,6 +174,7 @@ def extract_guppy_distributions(bam_file, pos_file, out_file):
                     ref_base,
                     alt_base,
                     truth_status,
+                    vaf_raw,
                     dp,
                     prob[ref_base],
                     prob[alt_base]] + [prob[x] for x in mfaa]]), file=out)
