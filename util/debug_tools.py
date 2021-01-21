@@ -37,7 +37,6 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from collections import OrderedDict, Counter
 import logging
 import sys, os, commentjson
-from util.utils import existing_file
 import pandas as pd
 import binascii
 
@@ -47,6 +46,7 @@ import pysam
 # Necessary for including python modules from a parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from util.utils import existing_file
 
 # BAM flags, @see https://broadinstitute.github.io/picard/explain-flags.html
 # @abstract the read is paired in sequencing, no matter whether it is mapped in a pair
