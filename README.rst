@@ -68,10 +68,15 @@ To run np2, you need the following input data files:
 
 Additionally, you can provide a truth-set VCF file per sample if you want to measure the performance of np2 on your data.
 
+Multiplexed data
+----------------
+
 Np2 supports multiplexed input data and can be configured to automatically run porechop for demultiplexing before any further processing is done.
 Note that you do not need to configure all of your multiplexed samples in case you want to process only a subset of them. Np2 will ignore the 
 other samples in this case.  
 
+Alternatively, you can do the demultiplexing yourself (make sure that the tool you select results in actual FAST5 and not only FASTQ files) 
+before configuring np2 for each sample individually. 
 
 Guppy preprocessing
 -------------------
@@ -123,6 +128,8 @@ the 'threads' parameter in the JSON config file.
 Np2 now runs the whole processing pipeline (see block diagram above) and produces result files
 along the way. If np2 fails at some stage you can typically restart it and it continues the pipeline
 from the stage that failed. 
+
+
 
 License
 =======
