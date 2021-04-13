@@ -208,7 +208,8 @@ DEF_CONF = {
         "debug_mode":           True, # if set, additional files useful for debugging/QC are produced
         
         "random_seed":          12345,
-        "max_reads":           'unlimited'  # if set to a number the alignment will be (randomly) subsampled to this maximum number of reads
+        "max_reads":            'unlimited',  # if set to a number the alignment will be (randomly) subsampled to this maximum number of reads
+        "vcf_version":          "VCFv4.2"
     }
 
 # ###############################################################################
@@ -273,7 +274,6 @@ def get_str(s):
     if (type(s) is list) :
         return str(s[0])
     return str(s)
-    
 def filter_max_ascore_alignments(in_bam, out_bam):
     """ Filter alignments with maximum alignment score: this will ensure that there is only one primary alignment per readname in the
     output BAM to work-around last bug. This method will chose the read with maximum alignment score (in AS tag) """
@@ -293,7 +293,6 @@ def filter_max_ascore_alignments(in_bam, out_bam):
                 if ascore != rn2as[read.query_name]:
                     continue
                 out.write(read)
-
 def get_ref_seq(ref_fasta, chrom, pos1, left=FP_CTX, right=MAX_DEL):
     """ Extract padded ref seq """
     start = pos1-left-1
@@ -303,7 +302,6 @@ def get_ref_seq(ref_fasta, chrom, pos1, left=FP_CTX, right=MAX_DEL):
         prefix = "N"*(-start)
         start = 0
     return prefix + ref_fasta.fetch(chrom, start, end).upper()
-
 def show_prog(q, max_value):
     """ Show progress """
     prog = tqdm(total=max_value, unit=' pos', desc='Calling variants')
@@ -316,7 +314,6 @@ def show_prog(q, max_value):
             prog.update(to_add)
         except:
             continue
-
 def count_hp(seq):
     """ Counts HP length (any allele) from start """
     hp_char=None
@@ -329,7 +326,6 @@ def count_hp(seq):
         else:
             break
     return hp_count, hp_char
-
 def count_hp_alt(seq, allele):
     """ Counts the HP len of passed allele from start """
     hp_len=0
@@ -338,8 +334,7 @@ def count_hp_alt(seq, allele):
             break
         hp_len+=1
         seq = seq[len(allele):]
-    return hp_len
-    
+    return hp_len  
 def get_max_outliers(data, overlapping_data=[], min_n=5, min_count=0):
     """ find max outliers (i.e., potentially real insertions/deletions) or any allele with a given min count """
     test_data = data + overlapping_data
@@ -351,6 +346,18 @@ def get_max_outliers(data, overlapping_data=[], min_n=5, min_count=0):
         q75 = max( np.percentile(test_data, 75 ), min_count )
         out_max = [ (aa, c) for aa, c in data if c > q75  ] 
     return out_max
+def print_h5_keys_recursive(a, pad=''):
+    if hasattr(a, 'keys'):
+        for k in list(a.keys()):
+            print(pad, k)
+            if k in a:
+                print_h5_keys_recursive(a[k], pad+'  ')
+def print_h5_keys(fast5_file):
+    """ print an exemplary h5 key structure for the passed fast5 files """
+    f = h5py.File(fast5_file, 'r')
+    first_read_name=next(iter(f.keys()))
+    print_h5_keys_recursive(f[first_read_name])
+    
 
 
 # ###############################################################################
@@ -655,86 +662,93 @@ def decorate_reads(config, samples):
     logging.info("Extract guppy probabilities")
     logging.info("-----------------------------------------------")
     config = validate_config(config)
-  
-    h5_cache = {}
-    for m in config['mappers'].keys():
-        for s in samples:
-            # iterate bam
-            if files_exist([s.decorated_bam_file[m]]):
-                logging.warning("Found existing decorated BAM file %s. Will not re-create..." % s.decorated_bam_file[m])
-            else:
-                logging.info("Decorating %s / %s" % ( s.name, m ) )
-                bcg = config['basecall_grp']
-                # read_name 2 fast5_file index
-                r2f = pd.read_csv(s.read_idx, sep='\t').set_index('read_name').to_dict()['fast5_file']
-                # progressbar: get readcount from bam
-                pbar = tqdm(total=get_read_count(s.bam_file[m]), desc='Decorating reads in %s/%s' % (s.name, m))
-                max_h5_cache = config['max_h5_cache']
-                with pysam.AlignmentFile(s.bam_file[m], "rb") as bam:  # @UndefinedVariable
-                    with pysam.AlignmentFile(s.decorated_bam_file[m], "wb", template=bam) as out:  # @UndefinedVariable
-                        for read in bam:
-                            rid = 'read_' + read.query_name
-                            if rid not in r2f:
-                                logging.warning("WARN: read %s not found in index. Skipping...")
-                            else:
-                                # load + cache h5 
-                                if r2f[rid] not in h5_cache:
-                                    if len(h5_cache) == max_h5_cache:
-                                        # remove oldest entry
-                                        h5_cache[next(iter(h5_cache))].close()
-                                        del h5_cache[next(iter(h5_cache))]
-                                    #print("%s Loading %s" % (read.reference_name, h5_filename) )
-                                    h5_cache[r2f[rid]]=h5py.File(r2f[rid], 'r', driver="core",backing_store=False)
-                                    
-                                h5_file = h5_cache[r2f[rid]]
-                                if rid not in h5_file.keys():
-                                    logging.warning("WARN: read %s not found in fast5 (maybe opened by another process?). Skipping...")
-                                fastq=h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Fastq"][()].splitlines()[1].decode('ascii')
-                                if fastq is None or read.query_sequence is None: # weird special case w/o read query sequence or missing fastq data
-                                    tqdm.write('Could not extract fastq for %s. Skipping read.' % (rid) )
-                                    continue
-                                trace = np.array(h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Trace"])
-                                move = np.array(h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Move"])
-                                dat = trace[move == 1] # mask data
-                                # get max flip/flop (A, C, G, T, A', C', G' and T')
-                                if read.is_reverse:
-                                    # reverse complement!
-                                    rev = np.array(list(reversed(dat)))
-                                    dat_max = np.column_stack(( np.maximum(rev[:,3], rev[:,7]), 
-                                                                np.maximum(rev[:,2], rev[:,6]),
-                                                                np.maximum(rev[:,1], rev[:,5]),
-                                                                np.maximum(rev[:,0], rev[:,4]) ))
-                                    fastq = reverse_complement(fastq)
+    exemplary_fast5_file=None
+    try:
+        h5_cache = {}
+        for m in config['mappers'].keys():
+            for s in samples:
+                # iterate bam
+                if files_exist([s.decorated_bam_file[m]]):
+                    logging.warning("Found existing decorated BAM file %s. Will not re-create..." % s.decorated_bam_file[m])
+                else:
+                    logging.info("Decorating %s / %s" % ( s.name, m ) )
+                    bcg = config['basecall_grp']
+                    # read_name 2 fast5_file index
+                    r2f = pd.read_csv(s.read_idx, sep='\t').set_index('read_name').to_dict()['fast5_file']
+                    # progressbar: get readcount from bam
+                    pbar = tqdm(total=get_read_count(s.bam_file[m]), desc='Decorating reads in %s/%s' % (s.name, m))
+                    max_h5_cache = config['max_h5_cache']
+                    with pysam.AlignmentFile(s.bam_file[m], "rb") as bam:  # @UndefinedVariable
+                        with pysam.AlignmentFile(s.decorated_bam_file[m], "wb", template=bam) as out:  # @UndefinedVariable
+                            for read in bam:
+                                rid = 'read_' + read.query_name
+                                if rid not in r2f:
+                                    logging.warning("WARN: read %s not found in index. Skipping...")
                                 else:
-                                    dat_max = np.column_stack(( np.maximum(dat[:,0], dat[:,4]), 
-                                                                np.maximum(dat[:,1], dat[:,5]),
-                                                                np.maximum(dat[:,2], dat[:,6]),
-                                                                np.maximum(dat[:,3], dat[:,7]) ))
+                                    # load + cache h5 
+                                    if r2f[rid] not in h5_cache:
+                                        if len(h5_cache) == max_h5_cache:
+                                            # remove oldest entry
+                                            h5_cache[next(iter(h5_cache))].close()
+                                            del h5_cache[next(iter(h5_cache))]
+                                        #print("%s Loading %s" % (read.reference_name, h5_filename) )
+                                        h5_cache[r2f[rid]]=h5py.File(r2f[rid], 'r', driver="core",backing_store=False)
+                                        
+                                    h5_file = h5_cache[r2f[rid]]
+                                    exemplary_fast5_file=r2f[rid]
+                                    if rid not in h5_file.keys():
+                                        logging.warning("WARN: read %s not found in fast5 (maybe opened by another process?). Skipping...")
+                                    fastq=h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Fastq"][()].splitlines()[1].decode('ascii')
+                                    if fastq is None or read.query_sequence is None: # weird special case w/o read query sequence or missing fastq data
+                                        tqdm.write('Could not extract fastq for %s. Skipping read.' % (rid) )
+                                        continue
+                                    trace = np.array(h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Trace"])
+                                    move = np.array(h5_file[rid]["Analyses"][bcg]["BaseCalled_template"]["Move"])
+                                    dat = trace[move == 1] # mask data
+                                    # get max flip/flop (A, C, G, T, A', C', G' and T')
+                                    if read.is_reverse:
+                                        # reverse complement!
+                                        rev = np.array(list(reversed(dat)))
+                                        dat_max = np.column_stack(( np.maximum(rev[:,3], rev[:,7]), 
+                                                                    np.maximum(rev[:,2], rev[:,6]),
+                                                                    np.maximum(rev[:,1], rev[:,5]),
+                                                                    np.maximum(rev[:,0], rev[:,4]) ))
+                                        fastq = reverse_complement(fastq)
+                                    else:
+                                        dat_max = np.column_stack(( np.maximum(dat[:,0], dat[:,4]), 
+                                                                    np.maximum(dat[:,1], dat[:,5]),
+                                                                    np.maximum(dat[:,2], dat[:,6]),
+                                                                    np.maximum(dat[:,3], dat[:,7]) ))
+                                        
+                                    # now correct for hard-clipped bases that are not in BAM file.
+                                    try:
+                                        bam_start=str(fastq).index(read.query_sequence)
+                                    except ValueError:
+                                        logging.error("ERROR: cannot correct for hard-clipped bases in " + rid)
+                                        sys.exit(1)
+                                    bam_end=bam_start+len(read.query_sequence)   
                                     
-                                # now correct for hard-clipped bases that are not in BAM file.
-                                try:
-                                    bam_start=str(fastq).index(read.query_sequence)
-                                except ValueError:
-                                    logging.error("ERROR: cannot correct for hard-clipped bases in " + rid)
-                                    sys.exit(1)
-                                bam_end=bam_start+len(read.query_sequence)   
-                                
-                                pA,pC,pG,pT = prob2ascii( dat_max[bam_start:bam_end] )
-        
-                                read.set_tag(config['tag_pA'], pA)
-                                read.set_tag(config['tag_pC'], pC)
-                                read.set_tag(config['tag_pG'], pG)
-                                read.set_tag(config['tag_pT'], pT)
-                            # write read
-                            out.write(read)
-                            pbar.update(1)
-                                         
-                # index bam file
-                pysam.index(s.decorated_bam_file[m])   # @UndefinedVariable
+                                    pA,pC,pG,pT = prob2ascii( dat_max[bam_start:bam_end] )
             
-    # close h5 files
-    for h5_file in h5_cache.values():
-        h5_file.close() 
+                                    read.set_tag(config['tag_pA'], pA)
+                                    read.set_tag(config['tag_pC'], pC)
+                                    read.set_tag(config['tag_pG'], pG)
+                                    read.set_tag(config['tag_pT'], pT)
+                                # write read
+                                out.write(read)
+                                pbar.update(1)
+                                             
+                    # index bam file
+                    pysam.index(s.decorated_bam_file[m])   # @UndefinedVariable
+                
+        # close h5 files
+        for h5_file in h5_cache.values():
+            h5_file.close() 
+    except:
+        if exemplary_fast5_file is not None:
+            print("FAST5 structure:")
+            print_h5_keys(exemplary_fast5_file)
+        raise
     return samples
 
 # ###############################################################################
@@ -1539,7 +1553,7 @@ def call_variants(config, samples, outdir):
                 #                Create VCF
                 # .........................................................................
                 header = vcfpy.Header(samples=vcfpy.SamplesInfos([config['dataset_name']+"." + s.name] if config['add_gt_field'] else []))
-                header.add_line(vcfpy.HeaderLine("fileformat", "VCFv4.2"))
+                header.add_line(vcfpy.HeaderLine("fileformat", config['vcf_version']))
                 header.add_line(vcfpy.HeaderLine("fileDate", datetime.datetime.today().strftime('%Y-%m-%d')))
                 header.add_line(vcfpy.HeaderLine("source", "nanopanel2"))
                 header.add_line(vcfpy.HeaderLine("reference", config['ref']))
