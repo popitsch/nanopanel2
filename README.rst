@@ -13,7 +13,7 @@ Introduction
 ============
 
 Nanopanel2 (np2) is a somatic variant caller for Nanopore panel sequencing data.
-Np2 works directly on basecalled FAST5 files and outputs VCF v4.2 and TSV files containing 
+Np2 works directly on basecalled FAST5 files and outputs VCF and TSV files containing 
 variant calls and associated statistics. It also produces haplotype map TSV and PDF files that 
 inform about haplotype distributions of called (PASS) variants.
 
@@ -74,6 +74,7 @@ Multiplexed data
 Np2 supports multiplexed input data and can be configured to automatically run porechop for demultiplexing before any further processing is done.
 Note that you do not need to configure all of your multiplexed samples in case you want to process only a subset of them. Np2 will ignore the 
 other samples in this case.  
+Please note that porechop is not actively supported anymore and that we will also likely switch to another demultiplexing tool in future nanopanel versions.
 
 Alternatively, you can do the demultiplexing yourself (make sure that the tool you select results in actual FAST5 and not only FASTQ files) 
 before configuring np2 for each sample individually. 
@@ -113,6 +114,18 @@ Please note that np2 uses the `commentjson`_ package to parse input JSON files, 
 .. _`a commented example`: docs/config.json.example
 .. _commentjson: https://github.com/vaidik/commentjson
 
+
+Read mappers
+------------
+
+Np2 can align nanopore reads with 3 aligners: `minimap2`_, `ngmlr`_ and `last`_ . 
+Note, however, that we currently recommend to use minimap2 only as it showed the best performance in our evaluation.
+
+.. _minimap2: https://github.com/lh3/minimap2/
+.. _ngmlr: https://github.com/philres/ngmlr
+.. _last: http://last.cbrc.jp/
+
+
 General usage
 =============
 
@@ -139,7 +152,7 @@ Nanopanel2 is free for academic use.
 If you want to use Nanopanel2 for commercial applications but don't want to adhere to the GNU Affero General Public License v3.0, you can purchase a commercial license. 
 Please contact the author in this case.   
    
-Copyright (c) 2020 Niko Popitsch.
+Copyright (c) 2020-2021 Niko Popitsch.
 
 Detailed license information can be found in the `LICENSE`_ file.
 

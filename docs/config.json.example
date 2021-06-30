@@ -19,14 +19,17 @@
         "mappers": {                                    # configured long-read mappers. Supported types are 'minimap2', 'ngmlr' and 'last'. 
                 "mm2" : {							
                         "type": "minimap2"
-                        },
-                "ngms": {
-                        "type": "ngmlr",
-                        "additional_param": [ "--no-smallinv", "--no-lowqualitysplit", "-k", "10", "--match", "3", "--mismatch", "-3", "--bin-size", "2", "--kmer-skip", "1" ] # additional runtime parameters for ngmlr
-                        },
-                "last": {
-                        "type": "last"
                         }
+                # uncomment the following section to add support for ngmlr / last mappers
+                #,
+                #"ngms": {
+                #        "type": "ngmlr",
+                #        "additional_param": [ "--no-smallinv", "--no-lowqualitysplit", "-k", "10", "--match", "3", "--mismatch", "-3", "--bin-size", "2", "--kmer-skip", "1" ] # additional runtime parameters for ngmlr
+                #        },
+                #"last": {
+                #        "type": "last"					# by default, np2 will look for the respective last DB at ${ref_without_extension}.last_db
+                #        								# alternatively, one can configure the last DB here, e.g.: "last_db": "mypath.last_db"
+                #        }
                 },
         "roi_intervals": ["chr:100-1000"],              # list of genomic intervals in which variant calling will be done 
         "truth_vcf": {                                  # This section is only required if truth-set data is available. Links sample identifiers to truth set VCF files.
@@ -44,7 +47,9 @@
         "suppress_del": ["AF", "DP"],
         "suppress_ins": ["AF", "DP"],
         "max_h5_cache": 500,                            # maximum number of cached H5 files. Setting this to a number >= the number of input FAST5 will greatly speed up the pipeline (at the cost of memory) 
-        "exe": {                                        # this section enables users to link to executables for 3rd party tools. Not needed when running via singularity. Supported sections: 'bgzip', 'samtools', 'porechop', 'minimap2', 'ngmlr', 'lastal', 'last-split', 'maf-convert')
-                "ngmlr":    "singularity run $SOFTWARE/SIF/ngmlr_0.2.7.sif"  # in this example, ngmlr is called via an (external) singularity image
+        "exe": {                                        # this section enables users to link to executables for 3rd party tools. Not needed when running via singularity. 
+        												# Supported sections: 'bgzip', 'samtools', 'porechop', 'minimap2', 'ngmlr', 'lastal', 'last-split', 'maf-convert')
+                                                        # For example, uncomment the following to enable ngmlr being called via an (external) singularity image 
+                                                        # "ngmlr":    "singularity run $SOFTWARE/SIF/ngmlr_0.2.7.sif" 
         }
 }

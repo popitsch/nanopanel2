@@ -1,1 +1,5 @@
 /list_modules.py
+/nanopolish_summarize.py
+/nanopolish_pipeline.py
+/longshot_summarize.py
+/medaka_summarize.py
