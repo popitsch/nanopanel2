@@ -164,9 +164,9 @@ For license and attribution notices for these materials, please refer to the LIC
 Citation
 ========
 
-If you make use of nanopanel2, please cite our preprint:
+If you make use of nanopanel2, please cite our paper:
 
-    Nanopanel2 calls phased low-frequency variants in Nanopore panel sequencing data.
-    Niko Popitsch, Sandra Preuner and Thomas Lion.
-    bioRxiv 2020.11.06.370858; doi: https://doi.org/10.1101/2020.11.06.370858
+    Niko Popitsch, Sandra Preuner, Thomas Lion, 
+    Nanopanel2 calls phased low-frequency variants in Nanopore panel sequencing data, 
+    Bioinformatics, 2021, doi: https://doi.org/10.1093/bioinformatics/btab526
  
