@@ -114,6 +114,10 @@ Please note that np2 uses the `commentjson`_ package to parse input JSON files, 
 .. _`a commented example`: docs/config.json.example
 .. _commentjson: https://github.com/vaidik/commentjson
 
+NOTE: the 'basecall_grp' configuration parameter tells np2 from which basecall group to get the basecalling probabilities.
+By default, guppy will add a new basecall group with every run (i.e, the first is called 'Basecall_1D_000', the second 'Basecall_1D_001', etc.).
+If you are unsure about the structure in your FAST5 files, you can either inspect them with common HDF5 tools or run 'nanopanel2 show_fast5_struct -i <my_fast5>'.
+
 
 Read mappers
 ------------

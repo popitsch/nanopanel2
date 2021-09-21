@@ -2057,7 +2057,7 @@ def nanopanel2_pipeline(config, outdir):
     print("All Done.")
 
 if __name__ == "__main__":
-    MODES = ['call', 'post_filter', 'build_demux_idx', 'calc_haplotypes']
+    MODES = ['call', 'post_filter', 'build_demux_idx', 'calc_haplotypes', 'show_fast5_struct']
     #============================================================================ 
     usage = LOGO.replace("VERS", VERSION) + '''                           
     
@@ -2093,6 +2093,9 @@ USAGE: nanopanel2.py MODE'''
     parser["calc_haplotypes"].add_argument("-b","--bam", type=existing_file, required=True, dest="bamF", help="bam file")
     parser["calc_haplotypes"].add_argument("-o", "--out", required=True, dest="outPrefix", help="haplotype output file prefix", type=str)
     
+    parser["show_fast5_struct"] = MyArgumentParser(usage="nanopanel2.py show_fast5_struct -i [input.fast5]", description=usage, formatter_class=RawDescriptionHelpFormatter)
+    parser["show_fast5_struct"].add_argument("-i","--in", type=existing_file, required=True, dest="inF", help="input FAST5 file")
+    
 
     args = parser[mode].parse_args(sys.argv[2:])
     #============================================================================
@@ -2118,6 +2121,9 @@ USAGE: nanopanel2.py MODE'''
     #============================================================================
     if mode == "calc_haplotypes":
         calc_haplotypes( args.inF, args.bamF, args.outPrefix )
+    #============================================================================
+    if mode == "show_fast5_struct":
+        print_h5_keys( args.inF )
 
         
         
